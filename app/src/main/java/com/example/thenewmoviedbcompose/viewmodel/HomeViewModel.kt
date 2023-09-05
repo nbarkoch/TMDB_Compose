@@ -4,7 +4,6 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.snapshots.SnapshotMutableState
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import com.example.thenewmoviedbcompose.api.MoviesRetrofitInstance
@@ -29,8 +28,18 @@ class HomeViewModel(
 
     private val _errorMessage = mutableStateOf<String?>(null)
     val errorMessage: MutableState<String?> = _errorMessage
-    fun clearErrorMessage(){
+    fun clearErrorMessage() {
         _errorMessage.value = null
+    }
+
+
+    private val _nextPage = mutableIntStateOf(1)
+    val nextPage: MutableState<Int> = _nextPage
+
+    private val _activeFilterIndex = mutableIntStateOf(0)
+    val activeFilterIndex: MutableState<Int> = _activeFilterIndex
+    fun setActiveFilterIndex(index: Int) {
+        _activeFilterIndex.intValue = index
     }
 
     val filters = listOf(
@@ -58,7 +67,11 @@ class HomeViewModel(
     )
 
 
-    private suspend fun <T> invokeCall(retrofitCall: suspend (page: Int) -> Response<T>, extractResults: (res: T) -> List<Movie>, page: Int) {
+    private suspend fun <T> invokeCall(
+        retrofitCall: suspend (page: Int) -> Response<T>,
+        extractResults: (res: T) -> List<Movie>,
+        page: Int
+    ) {
         if (page < 2) {
             _movies.clear()
         }
@@ -77,8 +90,13 @@ class HomeViewModel(
             _isLoadingMovies.value = false
         }
         if (response.isSuccessful) {
-            response.body()?.let {
-                _movies.addAll(extractResults(it))
+            response.body()?.let { body ->
+                extractResults(body).let { newMovies ->
+                    if (newMovies.isNotEmpty()) {
+                        _movies.addAll(newMovies)
+                        _nextPage.intValue = page + 1
+                    }
+                }
             }
         } else {
             _errorMessage.value = "Unexpected Error Occurred\nTry again later.."

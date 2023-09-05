@@ -16,8 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import androidx.navigation.NavDeepLinkRequest
 import androidx.navigation.NavDestination
@@ -42,6 +42,9 @@ import com.example.thenewmoviedbcompose.components.MoviesCollection
 import com.example.thenewmoviedbcompose.storage.FavoriteMovieDatabase
 import com.example.thenewmoviedbcompose.ui.popups.ErrorPopup
 import com.example.thenewmoviedbcompose.viewmodel.HomeViewModel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.Serializable
 
 
@@ -63,10 +66,8 @@ fun navigateWithSerializable(
 
 @Composable
 fun HomeScreen(navController: NavController, viewModel: HomeViewModel) {
-    val activeFilterIndex = rememberSaveable { mutableIntStateOf(0) }
-    val activePage = rememberSaveable { mutableIntStateOf(1) }
     val filterState = rememberLazyListState()
-
+    val mutex = remember { Mutex() }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -99,8 +100,15 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     itemsIndexed(viewModel.filters) { index, filter ->
-                        FilterCard(filter.name, activeFilterIndex.intValue == index) {
-                            activeFilterIndex.intValue = index
+                        FilterCard(filter.name, viewModel.activeFilterIndex.value == index) {
+                            viewModel.setActiveFilterIndex(index)
+                            viewModel.viewModelScope.launch {
+                                mutex.withLock {
+                                    viewModel.filters[viewModel.activeFilterIndex.value].invokeApiCall(
+                                        1
+                                    )
+                                }
+                            }
                         }
                         if (index < viewModel.filters.size - 1) {
                             FilterCardSpacer()
@@ -111,27 +119,23 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel) {
             MoviesCollection(viewModel.movies, onDetailsClick = { movie ->
                 navigateWithSerializable(navController, MOVIE_ENTITY, movie)
             }, onEndReached = {
-                if (viewModel.movies.isNotEmpty() &&
+                if (
                     !viewModel.isLoadingMovies.value) {
-                    activePage.intValue += 1
+                    viewModel.viewModelScope.launch {
+                        mutex.withLock {
+                            viewModel.filters[viewModel.activeFilterIndex.value]
+                                .invokeApiCall(viewModel.nextPage.value)
+                        }
+                    }
                 }
             }, isLoading = viewModel.isLoadingMovies.value)
         }
         ErrorPopup(message = viewModel.errorMessage.value) {
-           viewModel.clearErrorMessage()
+            viewModel.clearErrorMessage()
         }
     }
-    LaunchedEffect(activeFilterIndex.intValue) {
-        filterState.animateScrollToItem(activeFilterIndex.intValue)
-        if (activePage.intValue == 1) {
-            viewModel.filters[activeFilterIndex.intValue].invokeApiCall(activePage.intValue)
-        } else {
-            activePage.intValue = 1
-        }
-    }
-
-    LaunchedEffect(activePage.intValue) {
-        viewModel.filters[activeFilterIndex.intValue].invokeApiCall(activePage.intValue)
+    LaunchedEffect(viewModel.activeFilterIndex.value) {
+        filterState.animateScrollToItem(viewModel.activeFilterIndex.value)
     }
 }
 
