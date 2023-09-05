@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -32,11 +33,13 @@ import androidx.navigation.NavController
 import androidx.navigation.NavDeepLinkRequest
 import androidx.navigation.NavDestination
 import androidx.navigation.compose.rememberNavController
+import androidx.room.Room
 import com.example.thenewmoviedbcompose.MOVIE_ENTITY
 import com.example.thenewmoviedbcompose.NavigationScreen
 import com.example.thenewmoviedbcompose.components.FilterCard
 import com.example.thenewmoviedbcompose.components.FilterCardSpacer
 import com.example.thenewmoviedbcompose.components.MoviesCollection
+import com.example.thenewmoviedbcompose.storage.FavoriteMovieDatabase
 import com.example.thenewmoviedbcompose.viewmodel.HomeViewModel
 import java.io.Serializable
 
@@ -58,7 +61,7 @@ fun navigateWithSerializable(
 }
 
 @Composable
-fun HomeScreen(navController: NavController, viewModel: HomeViewModel = HomeViewModel()) {
+fun HomeScreen(navController: NavController, viewModel: HomeViewModel) {
     val activeFilterIndex = rememberSaveable { mutableIntStateOf(0) }
     val activePage = rememberSaveable { mutableIntStateOf(1) }
     val filterState = rememberLazyListState()
@@ -132,5 +135,14 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = HomeView
 @Composable
 @Preview
 fun HomeScreenPreview() {
-    HomeScreen(navController = rememberNavController())
+    val context = LocalContext.current
+    val dbPreview by lazy {
+        Room.databaseBuilder(
+            context,
+            FavoriteMovieDatabase::class.java,
+            "favorites.db"
+        ).build()
+    }
+    HomeScreen(navController = rememberNavController(),
+        viewModel = HomeViewModel(dbPreview.dao))
 }

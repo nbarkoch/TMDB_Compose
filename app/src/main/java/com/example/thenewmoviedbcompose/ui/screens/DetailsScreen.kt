@@ -19,6 +19,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -28,6 +29,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -37,19 +39,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import androidx.room.Room
 import coil.compose.rememberAsyncImagePainter
 import com.example.thenewmoviedbcompose.R
 import com.example.thenewmoviedbcompose.components.IMAGE_BASE_URL
 import com.example.thenewmoviedbcompose.model.Movie
+import com.example.thenewmoviedbcompose.storage.FavoriteMovieDatabase
 import com.example.thenewmoviedbcompose.viewmodel.DetailsViewModel
 
 @Composable
 fun DetailsScreen(
-    navController: NavController,
-    movie: Movie,
-    viewModel: DetailsViewModel = DetailsViewModel()
+    navController: NavController, movie: Movie, viewModel: DetailsViewModel
 ) {
-    val isFavorite = rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(movie) {
+        viewModel.checkIfIsFavorite(movie)
+    }
+
+    val containerColor = if (viewModel.isFavorite.value) Color.White
+    else Color(0xFF032541)
+
+    val borderColor = if (viewModel.isFavorite.value) Color(0xFF032541)
+    else Color.White
+
     val gradientBrush = Brush.verticalGradient(
         colors = listOf(
             Color(0x70032541),
@@ -85,7 +97,9 @@ fun DetailsScreen(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
-                ), modifier = Modifier.fillMaxWidth().padding(7.dp)
+                ), modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(7.dp)
             )
             Text(
                 text = movie.overview,
@@ -104,30 +118,35 @@ fun DetailsScreen(
                 .padding(5.dp)
         ) {
             Button(
-                modifier = Modifier.padding(10.dp),
-                onClick = {
-                    viewModel.addToFavorites(movie)
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF032541),
+                modifier = Modifier.padding(10.dp), onClick = {
+                    if (viewModel.isFavorite.value) {
+                        viewModel.removeFromFavorites(movie)
+                    } else {
+                        viewModel.addToFavorites(movie)
+                    }
+                }, colors = ButtonDefaults.buttonColors(
+                    containerColor = containerColor
                 )
 
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(
                         painter = painterResource(
-                            id = if (isFavorite.value) R.drawable.baseline_favorite_24
+                            id = if (viewModel.isFavorite.value) R.drawable.baseline_favorite_24
                             else R.drawable.baseline_favorite_border_24
                         ),
                         contentDescription = null,
                         modifier = Modifier.size(32.dp),
                         colorFilter = ColorFilter.tint(
-                            Color.White
+                            borderColor
                         )
                     )
                     Text(
-                        text = "Add To Favorite",
-                        style = TextStyle(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                        text = if (viewModel.isFavorite.value)
+                            "Your Favorite" else "Add To Favorite",
+                        style = TextStyle(
+                            color = borderColor, fontWeight = FontWeight.Bold, fontSize = 15.sp
+                        ),
                         modifier = Modifier.padding(horizontal = 10.dp)
                     )
                 }
@@ -141,14 +160,15 @@ fun DetailsScreen(
 @Composable
 @Preview
 fun DetailsScreenPreview() {
+    val context = LocalContext.current
+    val dbPreview by lazy {
+        Room.databaseBuilder(
+            context, FavoriteMovieDatabase::class.java, "favorites.db"
+        ).build()
+    }
     DetailsScreen(
-        navController = rememberNavController(),
-        movie = Movie(
-            1, true, "",
-            IntArray(0), "",
-            "", "", 0.0,
-            "", "", "",
-            false, 0.0, 0.0
-        )
+        navController = rememberNavController(), movie = Movie(
+            1, true, "", emptyList(), "", "", "", 0.0, "", "", "", false, 0.0, 0.0
+        ), viewModel = DetailsViewModel(dbPreview.dao)
     )
 }

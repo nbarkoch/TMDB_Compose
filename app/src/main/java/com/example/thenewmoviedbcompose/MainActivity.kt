@@ -3,17 +3,15 @@ package com.example.thenewmoviedbcompose
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import androidx.room.Room
 import com.example.thenewmoviedbcompose.model.Movie
+import com.example.thenewmoviedbcompose.storage.FavoriteMovieDatabase
 import com.example.thenewmoviedbcompose.ui.screens.DetailsScreen
 import com.example.thenewmoviedbcompose.ui.screens.HomeScreen
 import com.example.thenewmoviedbcompose.ui.theme.TheNewMovieDBcomposeTheme
@@ -21,10 +19,19 @@ import com.example.thenewmoviedbcompose.viewmodel.DetailsViewModel
 import com.example.thenewmoviedbcompose.viewmodel.HomeViewModel
 
 class MainActivity : ComponentActivity() {
+
+    private val db by lazy {
+        Room.databaseBuilder(
+            applicationContext,
+            FavoriteMovieDatabase::class.java,
+            "favorites.db"
+        ).build()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         lateinit var navController: NavHostController
-        val homeViewModel = HomeViewModel()
-        val detailsViewModel = DetailsViewModel()
+        val homeViewModel = HomeViewModel(db.dao)
+        val detailsViewModel = DetailsViewModel(db.dao)
         super.onCreate(savedInstanceState)
         setContent {
             TheNewMovieDBcomposeTheme {
@@ -47,18 +54,10 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
     TheNewMovieDBcomposeTheme {
-        Greeting("Android")
+
     }
 }
