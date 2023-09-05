@@ -40,6 +40,7 @@ import com.example.thenewmoviedbcompose.components.FilterCard
 import com.example.thenewmoviedbcompose.components.FilterCardSpacer
 import com.example.thenewmoviedbcompose.components.MoviesCollection
 import com.example.thenewmoviedbcompose.storage.FavoriteMovieDatabase
+import com.example.thenewmoviedbcompose.ui.popups.ErrorPopup
 import com.example.thenewmoviedbcompose.viewmodel.HomeViewModel
 import java.io.Serializable
 
@@ -110,12 +111,15 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel) {
             MoviesCollection(viewModel.movies, onDetailsClick = { movie ->
                 navigateWithSerializable(navController, MOVIE_ENTITY, movie)
             }, onEndReached = {
-                if (viewModel.movies.isNotEmpty() && !viewModel.isLoadingMovies.value) {
+                if (viewModel.movies.isNotEmpty() &&
+                    !viewModel.isLoadingMovies.value) {
                     activePage.intValue += 1
                 }
             }, isLoading = viewModel.isLoadingMovies.value)
         }
-
+        ErrorPopup(message = viewModel.errorMessage.value) {
+           viewModel.clearErrorMessage()
+        }
     }
     LaunchedEffect(activeFilterIndex.intValue) {
         filterState.animateScrollToItem(activeFilterIndex.intValue)

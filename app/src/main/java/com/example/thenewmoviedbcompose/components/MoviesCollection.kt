@@ -75,9 +75,5 @@ private fun LazyListState.isAtBottom(): Boolean {
 @Composable
 @Preview
 fun MoviesCollectionPreview(){
-    val movies = listOf<Movie>(
-//        Movie(
-//        1,false,"", emptyArray<Int>(), "",
-//    )
-    )
+    val movies = listOf<Movie>()
 }

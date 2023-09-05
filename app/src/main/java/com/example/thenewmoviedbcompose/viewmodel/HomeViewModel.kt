@@ -27,81 +27,61 @@ class HomeViewModel(
     private val _isLoadingMovies = mutableStateOf(false)
     val isLoadingMovies: MutableState<Boolean> = _isLoadingMovies
 
-    private val _activeFilterIndex = mutableIntStateOf(0)
-//    val activeFilterIndex: MutableState<Int> = _activeFilterIndex
-//    fun setActiveFilterIndex(index: Int){
-//        _activeFilterIndex.intValue = index
-//    }
+    private val _errorMessage = mutableStateOf<String?>(null)
+    val errorMessage: MutableState<String?> = _errorMessage
+    fun clearErrorMessage(){
+        _errorMessage.value = null
+    }
 
     val filters = listOf(
         FilterItem("Popular") { page ->
-            if (page < 2) {
-                _movies.clear()
-            }
-            _isLoadingMovies.value = true
-            val response = try {
+            invokeCall({
                 MoviesRetrofitInstance.api.getPopular(page = page)
-            } catch (e: IOException) {
-                // internet connection
-                e.printStackTrace()
-                return@FilterItem
-            } catch (e: Exception) {
-                // unexpected response, server/library errors
-                e.printStackTrace()
-                return@FilterItem
-            } finally {
-                _isLoadingMovies.value = false
-            }
-            if (response.isSuccessful) {
-                response.body()?.let {
-                    _movies.addAll(it.results)
-                }
-            } else {
-
-            }
+            }, {
+                it.results
+            }, page)
         },
         FilterItem("Favorite") { page ->
-            if (page < 2) {
-                _movies.clear()
-            }
-            _isLoadingMovies.value = true
-            val favoriteMovies = try {
-                favoriteMovieDao.getMovies(10, page)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                return@FilterItem
-            } finally {
-                _isLoadingMovies.value = false
-            }
-            _movies.addAll(favoriteMovies.filter { !_movies.contains(it) })
+            invokeCall({
+                Response.success(favoriteMovieDao.getMovies(10, it))
+            }, {
+                it.filter { !_movies.contains(it) }
+            }, page)
         },
         FilterItem("Now Playing") { page ->
-            if (page < 2) {
-                _movies.clear()
-            }
-            _isLoadingMovies.value = true
-            val response = try {
-                MoviesRetrofitInstance.api.getNowPlaying(page = page)
-            } catch (e: IOException) {
-                // internet connection
-                e.printStackTrace()
-                return@FilterItem
-            } catch (e: Exception) {
-                // unexpected response, server/library errors
-                e.printStackTrace()
-                return@FilterItem
-            } finally {
-                _isLoadingMovies.value = false
-            }
-            if (response.isSuccessful) {
-                response.body()?.let {
-                    _movies.addAll(it.results)
-                }
-            } else {
-
-            }
+            invokeCall({
+                MoviesRetrofitInstance.api.getNowPlaying(page = it)
+            }, {
+                it.results
+            }, page)
         }
     )
 
 
+    private suspend fun <T> invokeCall(retrofitCall: suspend (page: Int) -> Response<T>, extractResults: (res: T) -> List<Movie>, page: Int) {
+        if (page < 2) {
+            _movies.clear()
+        }
+        _isLoadingMovies.value = true
+        val response = try {
+            retrofitCall(page)
+        } catch (e: IOException) {
+            _errorMessage.value = "Connection Failure\nCheck if device is connected.."
+            e.printStackTrace()
+            return
+        } catch (e: Exception) {
+            _errorMessage.value = "Unexpected Error Occurred\nTry again later.."
+            e.printStackTrace()
+            return
+        } finally {
+            _isLoadingMovies.value = false
+        }
+        if (response.isSuccessful) {
+            response.body()?.let {
+                _movies.addAll(extractResults(it))
+            }
+        } else {
+            _errorMessage.value = "Unexpected Error Occurred\nTry again later.."
+        }
+    }
 }
