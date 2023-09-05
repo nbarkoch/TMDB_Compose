@@ -16,7 +16,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,26 +48,11 @@ import kotlinx.coroutines.sync.withLock
 import java.io.Serializable
 
 
-fun navigateWithSerializable(
-    navController: NavController,
-    key: String,
-    serializable: Serializable
-) {
-    val routeLink = NavDeepLinkRequest
-        .Builder
-        .fromUri(NavDestination.createRoute(NavigationScreen.Details.route).toUri())
-        .build()
-    navController.graph.matchDeepLink(routeLink)?.run {
-        val bundle = Bundle()
-        bundle.putSerializable(key, serializable)
-        navController.navigate(destination.id, bundle)
-    }
-}
-
 @Composable
 fun HomeScreen(navController: NavController, viewModel: HomeViewModel) {
     val filterState = rememberLazyListState()
-    val mutex = remember { Mutex() }
+    val paginationMutex = remember { Mutex() }
+    val activeFilterIndex = rememberSaveable { mutableIntStateOf(0) }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -98,15 +85,14 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     itemsIndexed(viewModel.filters) { index, filter ->
-                        FilterCard(filter.name, viewModel.activeFilterIndex.value == index) {
-                            viewModel.setActiveFilterIndex(index)
-                            viewModel.viewModelScope.launch {
-                                mutex.withLock {
-                                    viewModel.filters[viewModel.activeFilterIndex.value].invokeApiCall(
-                                        1
-                                    )
-                                }
-                            }
+                        FilterCard(filter.name, activeFilterIndex.intValue == index) {
+                            activeFilterIndex.intValue = index
+                            executeApiCall(
+                                activeFilterIndex.intValue,
+                                viewModel,
+                                paginationMutex,
+                                1
+                            )
                         }
                         if (index < viewModel.filters.size - 1) {
                             FilterCardSpacer()
@@ -117,14 +103,13 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel) {
             MoviesCollection(viewModel.movies, onDetailsClick = { movie ->
                 navigateWithSerializable(navController, MOVIE_ENTITY, movie)
             }, onEndReached = {
-                if (
-                    !viewModel.isLoadingMovies.value) {
-                    viewModel.viewModelScope.launch {
-                        mutex.withLock {
-                            viewModel.filters[viewModel.activeFilterIndex.value]
-                                .invokeApiCall(viewModel.nextPage.value)
-                        }
-                    }
+                if (!viewModel.isLoadingMovies.value) {
+                    executeApiCall(
+                        activeFilterIndex.intValue,
+                        viewModel,
+                        paginationMutex,
+                        viewModel.nextPage.value
+                    )
                 }
             }, isLoading = viewModel.isLoadingMovies.value)
         }
@@ -132,11 +117,40 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel) {
             viewModel.clearErrorMessage()
         }
     }
-    LaunchedEffect(viewModel.activeFilterIndex.value) {
-        filterState.animateScrollToItem(viewModel.activeFilterIndex.value)
+    LaunchedEffect(activeFilterIndex.intValue) {
+        filterState.animateScrollToItem(activeFilterIndex.intValue)
     }
 }
 
+
+fun executeApiCall(
+    filterIndex: Int,
+    viewModel: HomeViewModel,
+    mutex: Mutex,
+    pageNumber: Int
+) {
+    viewModel.viewModelScope.launch {
+        mutex.withLock {
+            viewModel.filters[filterIndex].fetchMovies(pageNumber)
+        }
+    }
+}
+
+fun navigateWithSerializable(
+    navController: NavController,
+    key: String,
+    serializable: Serializable
+) {
+    val routeLink = NavDeepLinkRequest
+        .Builder
+        .fromUri(NavDestination.createRoute(NavigationScreen.Details.route).toUri())
+        .build()
+    navController.graph.matchDeepLink(routeLink)?.run {
+        val bundle = Bundle()
+        bundle.putSerializable(key, serializable)
+        navController.navigate(destination.id, bundle)
+    }
+}
 
 @Composable
 @Preview

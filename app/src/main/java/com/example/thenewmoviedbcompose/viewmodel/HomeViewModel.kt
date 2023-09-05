@@ -18,7 +18,7 @@ class HomeViewModel(
 
     data class FilterItem(
         val name: String,
-        val invokeApiCall: suspend (page: Int) -> Unit
+        val fetchMovies: suspend (page: Int) -> Unit
     )
 
     private val _movies = mutableStateListOf<Movie>()
@@ -35,12 +35,6 @@ class HomeViewModel(
 
     private val _nextPage = mutableIntStateOf(1)
     val nextPage: MutableState<Int> = _nextPage
-
-    private val _activeFilterIndex = mutableIntStateOf(0)
-    val activeFilterIndex: MutableState<Int> = _activeFilterIndex
-    fun setActiveFilterIndex(index: Int) {
-        _activeFilterIndex.intValue = index
-    }
 
     val filters = listOf(
         FilterItem("Popular") { page ->
