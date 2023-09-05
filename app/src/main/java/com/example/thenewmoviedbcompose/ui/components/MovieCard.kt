@@ -1,4 +1,4 @@
-package com.example.thenewmoviedbcompose.components
+package com.example.thenewmoviedbcompose.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,12 +29,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.example.thenewmoviedbcompose.api.MoviesRetrofitInstance.IMAGE_BASE_URL
 import com.example.thenewmoviedbcompose.model.Movie
-
-const val IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w220_and_h330_face/"
+import com.example.thenewmoviedbcompose.ui.moviePreviewMock
 
 @Composable
 fun MovieCard(movie: Movie, onClick: (movie: Movie) -> Unit) {
@@ -46,7 +48,7 @@ fun MovieCard(movie: Movie, onClick: (movie: Movie) -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight()
+            .height(200.dp)
             .padding(8.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 5.dp,
@@ -64,7 +66,7 @@ fun MovieCard(movie: Movie, onClick: (movie: Movie) -> Unit) {
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .background(color = Color(0xFF032541))
+                            .background(color = MaterialTheme.colorScheme.primary)
                             .padding(12.dp)
                     ) {
                         Text(
@@ -81,12 +83,15 @@ fun MovieCard(movie: Movie, onClick: (movie: Movie) -> Unit) {
                             fontSize = 12.sp,
                         )
                     }
-                    Box(Modifier.padding(10.dp).clickable {
-                        onClick(movie)
-                    }) {
+                    Box(
+                        Modifier
+                            .padding(10.dp)
+                            .clickable {
+                                onClick(movie)
+                            }) {
                         Text(
                             text = movie.overview, style = TextStyle(
-                                fontSize = 14.sp
+                                fontSize = 14.sp,
                             ), modifier = Modifier.fillMaxHeight()
                         )
                         Box(
@@ -98,7 +103,7 @@ fun MovieCard(movie: Movie, onClick: (movie: Movie) -> Unit) {
 
                 }
                 Image(
-                    painter = rememberAsyncImagePainter("$IMAGE_BASE_URL${movie.backdropPath}"),
+                    painter = rememberAsyncImagePainter("$IMAGE_BASE_URL${movie.posterPath}"),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -109,24 +114,36 @@ fun MovieCard(movie: Movie, onClick: (movie: Movie) -> Unit) {
                         )
                 )
             }
-            Row(modifier = Modifier
-                .padding(5.dp)
-                .size(30.dp)
-                .clip(CircleShape).align(Alignment.TopEnd)
-                .background(color = Color(0xD2000000))
-                .clickable {
-                    onClick(movie)
-                }.padding(5.dp),
+            Row(
+                modifier = Modifier
+                    .padding(5.dp)
+                    .size(30.dp)
+                    .clip(CircleShape)
+                    .align(Alignment.TopEnd)
+                    .background(color = Color(0xD2000000))
+                    .clickable {
+                        onClick(movie)
+                    }
+                    .padding(5.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween) {
-                repeat(3){
-                    Box(modifier = Modifier
-                        .size(5.dp)
-                        .clip(CircleShape)
-                        .background(color = Color.LightGray))
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                repeat(3) {
+                    Box(
+                        modifier = Modifier
+                            .size(5.dp)
+                            .clip(CircleShape)
+                            .background(color = Color.LightGray)
+                    )
                 }
             }
         }
 
     }
+}
+
+@Preview
+@Composable
+fun MovieCardPreview() {
+    MovieCard(movie = moviePreviewMock) {}
 }

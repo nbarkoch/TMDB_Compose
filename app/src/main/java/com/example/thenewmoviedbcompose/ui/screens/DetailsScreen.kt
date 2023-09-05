@@ -2,7 +2,6 @@ package com.example.thenewmoviedbcompose.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,11 +16,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,7 +27,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -39,12 +36,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import androidx.room.Room
 import coil.compose.rememberAsyncImagePainter
 import com.example.thenewmoviedbcompose.R
-import com.example.thenewmoviedbcompose.components.IMAGE_BASE_URL
+import com.example.thenewmoviedbcompose.api.MoviesRetrofitInstance.IMAGE_BASE_URL
 import com.example.thenewmoviedbcompose.model.Movie
-import com.example.thenewmoviedbcompose.storage.FavoriteMovieDatabase
+import com.example.thenewmoviedbcompose.ui.daoMock
+import com.example.thenewmoviedbcompose.ui.moviePreviewMock
 import com.example.thenewmoviedbcompose.viewmodel.DetailsViewModel
 
 @Composable
@@ -57,9 +54,9 @@ fun DetailsScreen(
     }
 
     val containerColor = if (viewModel.isFavorite.value) Color.White
-    else Color(0xFF032541)
+    else MaterialTheme.colorScheme.primary
 
-    val borderColor = if (viewModel.isFavorite.value) Color(0xFF032541)
+    val borderColor = if (viewModel.isFavorite.value) MaterialTheme.colorScheme.primary
     else Color.White
 
     val gradientBrush = Brush.verticalGradient(
@@ -160,15 +157,9 @@ fun DetailsScreen(
 @Composable
 @Preview
 fun DetailsScreenPreview() {
-    val context = LocalContext.current
-    val dbPreview by lazy {
-        Room.databaseBuilder(
-            context, FavoriteMovieDatabase::class.java, "favorites.db"
-        ).build()
-    }
     DetailsScreen(
-        navController = rememberNavController(), movie = Movie(
-            1, true, "", emptyList(), "", "", "", 0.0, "", "", "", false, 0.0, 0.0
-        ), viewModel = DetailsViewModel(dbPreview.dao)
+        navController = rememberNavController(),
+        movie = moviePreviewMock,
+        viewModel = DetailsViewModel(daoMock())
     )
 }

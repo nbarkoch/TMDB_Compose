@@ -50,16 +50,16 @@ class HomeViewModel(
                 it.results
             }, page)
         },
-        FilterItem("Favorite") { page ->
+        FilterItem("Favorite") { offset ->
             invokeCall({
-                Response.success(favoriteMovieDao.getMovies(10, it))
-            }, {
-                it.filter { !_movies.contains(it) }
-            }, page)
+                Response.success(favoriteMovieDao.getMovies(5, offset - 1))
+            }, { movies ->
+                movies.filter { !_movies.contains(it) }
+            }, offset)
         },
         FilterItem("Now Playing") { page ->
             invokeCall({
-                MoviesRetrofitInstance.api.getNowPlaying(page = it)
+                MoviesRetrofitInstance.api.getNowPlaying(page = page)
             }, {
                 it.results
             }, page)

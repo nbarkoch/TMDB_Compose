@@ -9,7 +9,9 @@ object MoviesRetrofitInstance {
 
     private const val BASE_URL = "https://api.themoviedb.org/3/"
     private const val API_KEY = "d2bc56bb74d10fcca04542127ebda98c"
-    private const val ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJkMmJjNTZiYjc0ZDEwZmNjYTA0NTQyMTI3ZWJkYTk4YyIsInN1YiI6IjY0ZTZlN2ZiMWZlYWMxMDEzOGQ5ODA5MyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.iRPhUdF3_CxmmRzrQTxmJingBS2BLUf853AS_ABMjWA"
+    private const val ACCESS_TOKEN =
+        "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJkMmJjNTZiYjc0ZDEwZmNjYTA0NTQyMTI3ZWJkYTk4YyIsInN1YiI6IjY0ZTZlN2ZiMWZlYWMxMDEzOGQ5ODA5MyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.iRPhUdF3_CxmmRzrQTxmJingBS2BLUf853AS_ABMjWA"
+    const val IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w220_and_h330_face/"
 
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
         .addInterceptor { chain ->
